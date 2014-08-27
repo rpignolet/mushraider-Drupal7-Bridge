@@ -1,0 +1,22 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the galleria module.
+ */
+
+/**
+ * Implements hook_schema().
+ * Always returns the latest schema version!
+ */
+function mushraiderbridge_schema() {
+ 
+}
+
+
+/**
+ * Implements hook_install().
+ * Adds a 'default' option set for fresh installs.
+ */
+function mushraiderbridge_install() {
+  
+}

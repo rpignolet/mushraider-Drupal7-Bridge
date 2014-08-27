@@ -1,0 +1,14 @@
+name = MushRaider Bridge
+description = Allow drupal users to log into mushraider.
+core = 7.x
+
+files[] = mushraiderbridge.module
+
+configure = admin/config/system/mushraiderbridge
+
+
+version = "7.x-1.0.0"
+core = "7.x"
+project = "mushraiderbridge"
+datestamp = "1336662057"
+

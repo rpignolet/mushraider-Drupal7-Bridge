@@ -1,0 +1,185 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function mushraiderbridge_menu() {
+  $items = array();
+  $items['mushraiderbridge/auth'] = array(
+    'page callback' => 'mushraiderbridge_auth',
+    'page arguments' => array(2),
+    'access arguments' => array('mushraiderbridge authenticate')
+  );
+  $items['admin/config/system/mushraiderbridge'] = array(
+    'title' => 'Mushraider Bridge Administration',
+    'description' => 'Configure MushraiderBridge',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mushraiderbridge_admin_form'),
+    'access arguments' => array('mushraiderbridge administration'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+function mushraiderbridge_permission() {
+  return array(
+    'mushraiderbridge administration' => array(
+      'title' => t('MushraiderBridge Administration'),
+      'description' => t('Set access to mushraider bridge admin panel')
+    ),
+    'mushraiderbridge authenticate' => array(
+      'title' => t('MushraiderBridge'),
+      'description' => t('Set access to mushraider bridge')
+    )
+  );
+}
+
+function mushraiderbridge_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#mushraiderbridge':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('MushRaider Brigde provides a mechanism for sharing users between drupal and MushRaider v1.3.1 min.') . '</p>';
+      $output .= '<h3>' . t('Settings') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Permissions') . '</dt>';
+      $output .= '<dd>' . t('In order to grant access to share login the "mushraiderbridge authenticate" permission have to be set for all roles.') . '</dd>';
+      $output .= '<dt>' . t('MushRaider configuration side') . '</dt>';
+      $output .= '<dd>' . t('Define "Secret key".') . '</dd>';
+      $output .= '<dd>' . t('Define "Third party url" to <u>http:/yourDrupalWebsite/<b>mushraiderbridge/auth</b></u>') . '</dd>';
+      $output .= '<dt>' . t('Drupal bridge configuration side') . '</dt>';
+      $output .= '<dd>' . t('Set same value in "Secret key".') . '</dd>';
+      $output .= '</dl>';
+      return $output;
+  }
+}
+
+
+function mushraiderbridge_admin_form($form, &$form_state) {
+  $form['secutity'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Security'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['secutity']['mushRaiderBridge_salt'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Secret Key (salt)'),
+    '#default_value' => variable_get('mushRaiderBridge_salt'),
+    '#size' => 16,
+    '#maxlength' => 16,
+    '#description' => t('Min 16 characters. Allow : a-z, 0-9, -, _.'),
+    '#required' => TRUE,
+  );
+
+   $form['roleMap'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Roles mapping'),
+      '#collapsible' => TRUE,
+      '#collapsed' => FALSE,
+    );
+    $form['roleMap']['mushRaiderBridge_roleMap_isenable'] = array(
+      '#type' => 'radios',
+      '#title' => t('Activate role mapping'),
+      '#default_value' => variable_get('mushRaiderBridge_roleMap_isenable', 0),
+      '#options' => array(
+        0 => t('Disable'),
+        1 => t('Enable'),
+      ),
+    );
+    
+    $roles = user_roles(TRUE);
+    $roles[0] = 'none';
+    ksort($roles);
+
+    $form['roleMap']['mushRaiderBridge_roleMap_member'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Drupal role to map with mushraider member role'),
+      '#default_value' => variable_get('mushRaiderBridge_roleMap_member'),
+      '#description' => t("Select a Drupal role."),
+      '#options' => $roles,
+    );
+    $form['roleMap']['mushRaiderBridge_roleMap_officer'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Drupal role to map with mushraider officer role'),
+      '#default_value' => variable_get('mushRaiderBridge_roleMap_officer'),
+      '#description' => t("Select a Drupal role."),
+      '#options' => $roles,
+    );
+    $form['roleMap']['mushRaiderBridge_roleMap_administrator'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Drupal role to map with mushraider administrator role'),
+      '#default_value' => variable_get('mushRaiderBridge_roleMap_administrator'),
+      '#description' => t("Select a Drupal role."),
+      '#options' => $roles,
+    );
+
+  return system_settings_form($form);
+}
+
+function mushraiderbridge_auth(){
+  $salt = variable_get('mushRaiderBridge_salt');
+  $user = null;
+  $userInfos = array();
+
+  if(!isset($_POST['login'])){ $_POST['login'] = '_null'; }
+  
+  if(filter_var($_POST['login'], FILTER_VALIDATE_EMAIL)){
+    $user = user_load_by_mail($_POST['login']);
+  }
+  else{
+    $user = user_load_by_name($_POST['login']);  
+  }
+  
+  if($user){
+    $iv_size = mcrypt_get_iv_size(MCRYPT_BLOWFISH, MCRYPT_MODE_ECB);
+    $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
+    $pwd = mcrypt_decrypt(MCRYPT_BLOWFISH, $salt, $_POST['pwd'], MCRYPT_MODE_ECB, $iv);
+    
+    if(user_authenticate($user->name, trim($pwd))){
+      $userInfos['authenticated'] = true;
+      $userInfos['email'] = $user->mail;
+    
+      if(variable_get('mushRaiderBridge_roleMap_isenable')){
+        $userInfos['authenticated'] = true;
+        $userInfos['email'] = $user->mail;
+        $status = false;
+
+        foreach(variable_get('mushRaiderBridge_roleMap_member') as $roleMember){
+          if($user->roles[$roleMember] != null){
+            $userInfos['role'] = 'member';
+            $status = true;
+          }
+        }
+        foreach(variable_get('mushRaiderBridge_roleMap_officer') as $roleOfficer){
+          if($user->roles[$roleOfficer] != null){
+            $userInfos['role'] = 'officer';
+            $status = true;
+          }
+        }
+        foreach(variable_get('mushRaiderBridge_roleMap_administrator') as $roleAdmin){
+          if($user->roles[$roleAdmin] != null){
+            $userInfos['role'] = 'admin';
+            $status = true;
+          }
+        }
+        if(!$status){
+          $userInfos = null;
+          $userInfos['authenticated'] = false;
+        }
+      }
+    }
+    else{
+      $userInfos['authenticated'] = false;
+     
+    }
+  }
+  else{
+    $userInfos['authenticated'] = false;
+  }
+
+  header('Content-Type: application/json');
+  echo json_encode($userInfos);
+ 
+}
