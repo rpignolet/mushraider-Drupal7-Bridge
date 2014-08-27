@@ -1,5 +1,5 @@
 About
-	MushRaider Brigde provides a mechanism for sharing users between drupal and MushRaider v1.3.1 .
+	MushRaider Brigde provides a mechanism for sharing users between drupal and MushRaider v1.4 .
 
 Settings
     Permissions

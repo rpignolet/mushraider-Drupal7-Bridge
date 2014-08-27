@@ -123,6 +123,7 @@ function mushraiderbridge_auth(){
   $user = null;
   $userInfos = array();
 
+
   if(!isset($_POST['login'])){ $_POST['login'] = '_null'; }
   
   if(filter_var($_POST['login'], FILTER_VALIDATE_EMAIL)){
@@ -133,11 +134,11 @@ function mushraiderbridge_auth(){
   }
   
   if($user){
-    $iv_size = mcrypt_get_iv_size(MCRYPT_BLOWFISH, MCRYPT_MODE_ECB);
+    $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_ECB);
     $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
-    $pwd = mcrypt_decrypt(MCRYPT_BLOWFISH, $salt, $_POST['pwd'], MCRYPT_MODE_ECB, $iv);
-    
-    if(user_authenticate($user->name, trim($pwd))){
+    $pwd = trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $salt, $_POST['pwd'], MCRYPT_MODE_ECB, $iv));
+
+    if(user_authenticate($user->name, $pwd)){
       $userInfos['authenticated'] = true;
       $userInfos['email'] = $user->mail;
     
