@@ -39,7 +39,7 @@ function mushraiderbridge_help($path, $arg) {
   switch ($path) {
     case 'admin/help#mushraiderbridge':
       $output = '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('MushRaider Brigde provides a mechanism for sharing users between drupal and MushRaider v1.3.1 min.') . '</p>';
+      $output .= '<p>' . t('MushRaider Brigde provides a mechanism for sharing users between drupal and MushRaider v1.4.0 min.') . '</p>';
       $output .= '<h3>' . t('Settings') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Permissions') . '</dt>';
@@ -67,9 +67,10 @@ function mushraiderbridge_admin_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('Secret Key (salt)'),
     '#default_value' => variable_get('mushRaiderBridge_salt'),
-    '#size' => 16,
-    '#maxlength' => 16,
-    '#description' => t('Min 16 characters. Allow : a-z, 0-9, -, _.'),
+    '#size' => 32,
+    '#maxlength' => 32,
+    '#minlength' => 32,
+    '#description' => t('32 characters. Copy and paste the mushraider private key found in "API & Bridge"'),
     '#required' => TRUE,
   );
 
